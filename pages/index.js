@@ -97,7 +97,6 @@ function HomeContent() {
     const payload = btoa(JSON.stringify({ marbles, createdAt: Date.now() }));
     const link = `${window.location.origin}?jar=${payload}`;
     
-    // 무조건 복사되는 마법의 코드
     const el = document.createElement('textarea');
     el.value = link; el.style.position = 'absolute'; el.style.left = '-9999px';
     document.body.appendChild(el);
@@ -119,17 +118,14 @@ function HomeContent() {
     return `${Math.floor(d / 86400000)}일 전`;
   };
 
-  // ★ 완벽한 대칭을 가진 둥글포근한 유리병 컴포넌트 (image_defb3b.png 스타일)
-  const GlassJar = ({ items }) => (
-    <div style={{ position: 'relative', width: 220, height: 280, margin: '20px auto 30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {/* 병 입구 */}
-      <div style={{ width: 100, height: 20, background: 'rgba(255,255,255,0.4)', border: '2px solid rgba(255,255,255,0.6)', borderRadius: '10px 10px 0 0', position: 'relative', zIndex: 2 }} />
-      {/* 병 몸통 (대칭 둥근 실루엣) */}
-      <div style={{ width: '100%', height: 'calc(100% - 20px)', background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))', border: '2px solid rgba(255,255,255,0.5)', borderRadius: '30px 30px 80px 80px', backdropFilter: 'blur(3px)', backdropFilter: 'blur(3px)', boxShadow: '0 10px 40px rgba(0,0,0,0.06), inset 0 0 25px rgba(255,255,255,0.4)', display: 'flex', flexWrap: 'wrap-reverse', alignContent: 'flex-start', justifyContent: 'center', padding: '30px 20px', gap: 6, overflow: 'hidden' }}>
+  const GlassJar = ({ items, scale = 1 }) => (
+    <div style={{ position: 'relative', width: 220 * scale, height: 280 * scale, margin: scale === 1 ? '20px auto 30px' : '10px auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: 100 * scale, height: 20 * scale, background: 'rgba(255,255,255,0.4)', border: `${2 * scale}px solid rgba(255,255,255,0.6)`, borderRadius: `${10 * scale}px ${10 * scale}px 0 0`, position: 'relative', zIndex: 2 }} />
+      <div style={{ width: '100%', height: `calc(100% - ${20 * scale}px)`, background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))', border: `${2 * scale}px solid rgba(255,255,255,0.5)`, borderRadius: `${30 * scale}px ${30 * scale}px ${80 * scale}px ${80 * scale}px`, backdropFilter: 'blur(3px)', boxShadow: `0 ${10 * scale}px ${40 * scale}px rgba(0,0,0,0.06), inset 0 0 ${25 * scale}px rgba(255,255,255,0.4)`, display: 'flex', flexWrap: 'wrap-reverse', alignContent: 'flex-start', justifyContent: 'center', padding: `${30 * scale}px ${20 * scale}px`, gap: 6 * scale, overflow: 'hidden' }}>
         {items.map((m, i) => (
           <div key={m.id} style={{ position: 'relative' }} onMouseEnter={() => setHoveredMarble(m.id)} onMouseLeave={() => setHoveredMarble(null)}>
-            <div style={marbleStyle(EMOTIONS.find(e => e.id === m.emotion).color, 32)} />
-            {hoveredMarble === m.id && (
+            <div style={marbleStyle(EMOTIONS.find(e => e.id === m.emotion).color, 32 * scale)} />
+            {scale === 1 && hoveredMarble === m.id && (
               <div style={{ position: 'absolute', bottom: '125%', left: '50%', transform: 'translateX(-50%)', background: '#fff', padding: '10px 14px', borderRadius: 14, fontSize: 12, width: 160, boxShadow: '0 8px 25px rgba(0,0,0,0.12)', zIndex: 10, lineHeight: 1.5, color: '#2a2050' }}>
                 <div style={{ fontSize: 10, color: '#a090c0', marginBottom: 4 }}>{EMOTIONS.find(e => e.id === m.emotion).name}</div>
                 <div>{m.anon ? '(익명) ' : ''}{m.text}</div>
@@ -142,10 +138,22 @@ function HomeContent() {
     </div>
   );
 
+  if (sharedData) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f0eeff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
+        <h2 style={{ color: '#7c5cbf', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>🫙 공유된 감정 구슬 병</h2>
+        <p style={{ color: '#a090c0', fontSize: 12, marginBottom: 24 }}>{sharedData.marbles.length}개의 구슬</p>
+        <GlassJar items={sharedData.marbles} />
+        <button onClick={() => window.location.href = '/'} style={{ marginTop: 30, padding: '12px 32px', background: 'linear-gradient(135deg,#7c5cbf,#4e8de8)', border: 'none', borderRadius: 16, color: '#fff', fontSize: 14, cursor: 'pointer' }}>
+          ✦ 나도 구슬 만들기
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f0eeff', padding: '40px 20px', fontFamily: 'sans-serif' }}>
       <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" />
-      
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         <h1 style={{ textAlign: 'center', color: '#7c5cbf', fontSize: 24, fontWeight: 700, letterSpacing: 3, marginBottom: 25, textTransform: 'uppercase' }}>Emotion Marbles</h1>
         
@@ -200,15 +208,14 @@ function HomeContent() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               {archives.length === 0 ? <p style={{ gridColumn: '1/3', color: '#c0b0e0' }}>아직 보관된 병이 없어요</p> : archives.map(a => (
                 <div key={a.id} style={{ background: 'rgba(255,255,255,0.6)', padding: 15, borderRadius: 25, boxShadow: '0 5px 15px rgba(0,0,0,0.03)' }}>
-                  <GlassJar items={a.marbles} />
-                  <p style={{ fontSize: 11, color: '#a090c0', marginTop: -20 }}>{new Date(a.completedAt).toLocaleDateString()}</p>
+                  <GlassJar items={a.marbles} scale={0.6} />
+                  <p style={{ fontSize: 11, color: '#a090c0', marginTop: 10 }}>{new Date(a.completedAt).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
-
       {notif && <div style={{ position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)', background: 'rgba(50,50,50,0.9)', color: '#fff', padding: '12px 25px', borderRadius: 30, fontSize: 14, zIndex: 100, boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }}>{notif}</div>}
     </div>
   );
