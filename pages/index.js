@@ -30,6 +30,7 @@ function marbleStyle(color, size = 28) {
 
 export default function Home() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [marbles, setMarbles] = useState([]);
   const [archives, setArchives] = useState([]);
   const [tab, setTab] = useState('jar');
@@ -41,28 +42,25 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [hoveredMarble, setHoveredMarble] = useState(null);
 
-  // Load from localStorage
+  // Client-side initialization
   useEffect(() => {
+    setIsClient(true);
     setMarbles(JSON.parse(localStorage.getItem('em_marbles') || '[]'));
     setArchives(JSON.parse(localStorage.getItem('em_archives') || '[]'));
-  }, []);
 
-  // // Detect shared jar from URL - 가장 안전한 클라이언트 전용 방식
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const jarData = params.get('jar');
-      if (jarData) {
-        try {
-          // btoa/atob 한글 깨짐 방지를 위해 decodeURIComponent 추가
-          const decodedData = JSON.parse(atob(jarData));
-          setSharedData(decodedData);
-        } catch (e) {
-          console.error("공유 데이터를 읽는데 실패했습니다.", e);
-        }
+    // Detect shared jar from URL
+    const params = new URLSearchParams(window.location.search);
+    const jarData = params.get('jar');
+    if (jarData) {
+      try {
+        setSharedData(JSON.parse(atob(jarData)));
+      } catch (e) {
+        console.error(e);
       }
     }
   }, []);
+
+  if (!isClient) return null;
 
   function save(m, a) {
     localStorage.setItem('em_marbles', JSON.stringify(m));
@@ -112,7 +110,6 @@ export default function Home() {
     return `${Math.floor(d / 86400000)}일 전`;
   }
 
-  // ── Shared view ──
   if (sharedData) {
     return (
       <div style={{ minHeight: '100vh', background: '#f0eeff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
@@ -139,14 +136,13 @@ export default function Home() {
             );
           })}
         </div>
-        <button onClick={() => router.push('/')} style={{ padding: '12px 32px', background: 'linear-gradient(135deg,#7c5cbf,#4e8de8)', border: 'none', borderRadius: 16, color: '#fff', fontSize: 14, cursor: 'pointer' }}>
+        <button onClick={() => window.location.href = '/'} style={{ padding: '12px 32px', background: 'linear-gradient(135deg,#7c5cbf,#4e8de8)', border: 'none', borderRadius: 16, color: '#fff', fontSize: 14, cursor: 'pointer' }}>
           ✦ 나도 구슬 만들기
         </button>
       </div>
     );
   }
 
-  // ── Main app ──
   return (
     <>
       <Head><title>Emotion Marbles</title></Head>
@@ -157,7 +153,6 @@ export default function Home() {
             <p style={{ fontSize: 12, color: '#a090c0', marginTop: 4 }}>당신의 감정을 구슬에 담아 보관하세요</p>
           </div>
 
-          {/* Tabs */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '0 24px 16px' }}>
             {[['jar','🫙 나의 병'],['add','✦ 기록'],['share','↗ 공유'],['archive','◎ 보관함']].map(([id,label]) => (
               <button key={id} onClick={() => setTab(id)} style={{ background: tab===id ? '#7c5cbf' : 'rgba(255,255,255,.6)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: tab===id ? '#fff' : '#7060a0', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -166,7 +161,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* JAR TAB */}
           {tab === 'jar' && (
             <div style={{ padding: '0 20px', textAlign: 'center' }}>
               <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 }}>
@@ -198,7 +192,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* ADD TAB */}
           {tab === 'add' && (
             <div style={{ padding: '0 20px' }}>
               <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>감정 선택</p>
@@ -227,7 +220,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* SHARE TAB */}
           {tab === 'share' && (
             <div style={{ padding: '0 20px' }}>
               <div style={{ background: 'rgba(255,255,255,.75)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 20, padding: 20, marginBottom: 12 }}>
@@ -247,7 +239,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* ARCHIVE TAB */}
           {tab === 'archive' && (
             <div style={{ padding: '0 20px' }}>
               {archives.length === 0
@@ -270,7 +261,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Notification */}
         {notif && <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,.97)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 20, padding: '10px 20px', fontSize: 13, color: '#7c5cbf', boxShadow: '0 8px 32px rgba(124,92,191,.15)', whiteSpace: 'nowrap', zIndex: 9999 }}>{notif}</div>}
       </div>
     </>
