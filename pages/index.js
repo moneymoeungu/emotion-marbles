@@ -47,19 +47,22 @@ export default function Home() {
     setArchives(JSON.parse(localStorage.getItem('em_archives') || '[]'));
   }, []);
 
-  // Detect shared jar from URL
-  const [isClient, setIsClient] = useState(false);
+  // // Detect shared jar from URL - 가장 안전한 클라이언트 전용 방식
   useEffect(() => {
-    setIsClient(true);
-    if (router.isReady) {
-      const { jar } = router.query;
-      if (jar) {
-        try { setSharedData(JSON.parse(atob(jar))); } catch (e) {}
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const jarData = params.get('jar');
+      if (jarData) {
+        try {
+          // btoa/atob 한글 깨짐 방지를 위해 decodeURIComponent 추가
+          const decodedData = JSON.parse(atob(jarData));
+          setSharedData(decodedData);
+        } catch (e) {
+          console.error("공유 데이터를 읽는데 실패했습니다.", e);
+        }
       }
     }
-  }, [router.isReady, router.query]);
-
-  if (!isClient) return null;
+  }, []);
 
   function save(m, a) {
     localStorage.setItem('em_marbles', JSON.stringify(m));
