@@ -48,12 +48,18 @@ export default function Home() {
   }, []);
 
   // Detect shared jar from URL
+  const [isClient, setIsClient] = useState(false);
   useEffect(() => {
-    const { jar } = router.query;
-    if (jar) {
-      try { setSharedData(JSON.parse(atob(jar))); } catch (e) {}
+    setIsClient(true);
+    if (router.isReady) {
+      const { jar } = router.query;
+      if (jar) {
+        try { setSharedData(JSON.parse(atob(jar))); } catch (e) {}
+      }
     }
-  }, [router.query]);
+  }, [router.isReady, router.query]);
+
+  if (!isClient) return null;
 
   function save(m, a) {
     localStorage.setItem('em_marbles', JSON.stringify(m));
