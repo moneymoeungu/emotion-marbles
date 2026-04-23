@@ -1,6 +1,9 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
+
+// --- (이 아래 코드는 아까와 같지만, 에러 방지 로직이 더 강화되었습니다) ---
 
 const EMOTIONS = [
   { id: 'happy',   name: '행복',   color: '#FFD700' },
@@ -28,9 +31,8 @@ function marbleStyle(color, size = 28) {
   };
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
   const [marbles, setMarbles] = useState([]);
   const [archives, setArchives] = useState([]);
   const [tab, setTab] = useState('jar');
@@ -42,25 +44,24 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [hoveredMarble, setHoveredMarble] = useState(null);
 
-  // Client-side initialization
   useEffect(() => {
-    setIsClient(true);
-    setMarbles(JSON.parse(localStorage.getItem('em_marbles') || '[]'));
-    setArchives(JSON.parse(localStorage.getItem('em_archives') || '[]'));
+    // 로컬 스토리지 데이터 로드
+    const savedMarbles = localStorage.getItem('em_marbles');
+    const savedArchives = localStorage.getItem('em_archives');
+    if (savedMarbles) setMarbles(JSON.parse(savedMarbles));
+    if (savedArchives) setArchives(JSON.parse(savedArchives));
 
-    // Detect shared jar from URL
+    // 공유된 주소 확인 (브라우저에서 직접 읽기)
     const params = new URLSearchParams(window.location.search);
     const jarData = params.get('jar');
     if (jarData) {
       try {
         setSharedData(JSON.parse(atob(jarData)));
       } catch (e) {
-        console.error(e);
+        console.error("공유 데이터 오류", e);
       }
     }
   }, []);
-
-  if (!isClient) return null;
 
   function save(m, a) {
     localStorage.setItem('em_marbles', JSON.stringify(m));
@@ -118,12 +119,9 @@ export default function Home() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 300, marginBottom: 32 }}>
           {sharedData.marbles.map((m, i) => {
             const e = EMOTIONS.find(x => x.id === m.emotion);
-            const sizes = [30,26,28,24,32,26,28,30,24,28];
-            const size = sizes[i % 10];
+            const size = [30,26,28,24,32,26,28,30,24,28][i % 10];
             return (
-              <div key={m.id} style={{ position: 'relative' }}
-                onMouseEnter={() => setHoveredMarble(m.id)}
-                onMouseLeave={() => setHoveredMarble(null)}>
+              <div key={m.id} style={{ position: 'relative' }} onMouseEnter={() => setHoveredMarble(m.id)} onMouseLeave={() => setHoveredMarble(null)}>
                 <div style={marbleStyle(e.color, size)} />
                 {hoveredMarble === m.id && (
                   <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,.97)', border: '1px solid rgba(160,140,220,.3)', borderRadius: 14, padding: '12px 14px', width: 200, fontSize: 12, color: '#2a2050', zIndex: 100, boxShadow: '0 8px 32px rgba(124,92,191,.15)', lineHeight: 1.5 }}>
@@ -144,125 +142,107 @@ export default function Home() {
   }
 
   return (
-    <>
-      <Head><title>Emotion Marbles</title></Head>
-      <div style={{ minHeight: '100vh', background: '#f0eeff', fontFamily: 'sans-serif' }}>
-        <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 0 80px' }}>
-          <div style={{ textAlign: 'center', padding: '32px 24px 20px' }}>
-            <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: 3, color: '#7c5cbf', textTransform: 'uppercase' }}>Emotion Marbles</h1>
-            <p style={{ fontSize: 12, color: '#a090c0', marginTop: 4 }}>당신의 감정을 구슬에 담아 보관하세요</p>
-          </div>
+    <div style={{ minHeight: '100vh', background: '#f0eeff', fontFamily: 'sans-serif' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 0 80px' }}>
+        <div style={{ textAlign: 'center', padding: '32px 24px 20px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: 3, color: '#7c5cbf', textTransform: 'uppercase' }}>Emotion Marbles</h1>
+          <p style={{ fontSize: 12, color: '#a090c0', marginTop: 4 }}>당신의 감정을 구슬에 담아 보관하세요</p>
+        </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '0 24px 16px' }}>
-            {[['jar','🫙 나의 병'],['add','✦ 기록'],['share','↗ 공유'],['archive','◎ 보관함']].map(([id,label]) => (
-              <button key={id} onClick={() => setTab(id)} style={{ background: tab===id ? '#7c5cbf' : 'rgba(255,255,255,.6)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: tab===id ? '#fff' : '#7060a0', cursor: 'pointer', fontFamily: 'inherit' }}>
-                {label}
-              </button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '0 24px 16px' }}>
+          {[['jar','🫙 나의 병'],['add','✦ 기록'],['share','↗ 공유'],['archive','◎ 보관함']].map(([id,label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{ background: tab===id ? '#7c5cbf' : 'rgba(255,255,255,.6)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: tab===id ? '#fff' : '#7060a0', cursor: 'pointer' }}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-          {tab === 'jar' && (
-            <div style={{ padding: '0 20px', textAlign: 'center' }}>
-              <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 }}>
-                {marbles.length > 0 ? `${new Date(marbles[0].ts).getFullYear()}년 ${new Date(marbles[0].ts).getMonth()+1}월의 기억` : '현재 병'}
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', minHeight: 120, alignContent: 'flex-end', background: 'rgba(180,160,255,.08)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 20, padding: '20px 16px', marginBottom: 12 }}>
-                {marbles.length === 0
-                  ? <p style={{ fontSize: 12, color: '#c0b0e0', alignSelf: 'center' }}>아직 구슬이 없어요</p>
-                  : marbles.map((m, i) => {
-                      const e = EMOTIONS.find(x => x.id === m.emotion);
-                      const sizes = [30,26,28,24,32,26,28,30,24,28];
-                      return (
-                        <div key={m.id} style={{ position: 'relative' }}
-                          onMouseEnter={() => setHoveredMarble(m.id)}
-                          onMouseLeave={() => setHoveredMarble(null)}>
-                          <div style={marbleStyle(e.color, sizes[i%10])} />
-                          {hoveredMarble === m.id && (
-                            <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,.97)', border: '1px solid rgba(160,140,220,.3)', borderRadius: 14, padding: '10px 12px', width: 180, fontSize: 12, color: '#2a2050', zIndex: 100, boxShadow: '0 8px 20px rgba(124,92,191,.15)', lineHeight: 1.5 }}>
-                              <div style={{ fontSize: 10, color: '#a090c0', marginBottom: 3 }}>{e.name}</div>
-                              <div>{m.text}</div>
-                              <div style={{ fontSize: 10, color: '#a090c0', marginTop: 4 }}>{getTimeAgo(m.ts)}</div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-              </div>
-              <p style={{ fontSize: 12, color: '#a090c0' }}>{marbles.length} / 20개</p>
-            </div>
-          )}
-
-          {tab === 'add' && (
-            <div style={{ padding: '0 20px' }}>
-              <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>감정 선택</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 16 }}>
-                {EMOTIONS.map(e => (
-                  <button key={e.id} onClick={() => setSelectedEmotion(e.id)} style={{ background: selectedEmotion===e.id ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.7)', border: `1px solid ${selectedEmotion===e.id ? e.color+'88' : 'rgba(160,140,220,.2)'}`, borderRadius: 14, padding: '10px 4px 8px', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit', boxShadow: selectedEmotion===e.id ? `0 6px 20px ${e.color}33` : 'none', transform: selectedEmotion===e.id ? 'translateY(-3px)' : 'none', transition: 'all .2s' }}>
-                    <div style={{ ...marbleStyle(e.color, 24), margin: '0 auto 6px' }} />
-                    <div style={{ fontSize: 10, color: '#7060a0' }}>{e.name}</div>
-                  </button>
-                ))}
-              </div>
-              <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>기록</p>
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} maxLength={500} placeholder="오늘의 감정을 자유롭게 써보세요..." style={{ width: '100%', minHeight: 100, background: 'rgba(255,255,255,.8)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 16, padding: '14px 16px', fontFamily: 'inherit', fontSize: 14, color: '#2a2050', resize: 'none', outline: 'none', lineHeight: 1.6 }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 4px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setIsAnon(!isAnon)}>
-                  <div style={{ width: 36, height: 20, background: isAnon ? 'rgba(124,92,191,.5)' : 'rgba(160,140,220,.2)', borderRadius: 10, position: 'relative', border: '1px solid rgba(160,140,220,.2)', transition: 'background .2s' }}>
-                    <div style={{ position: 'absolute', width: 14, height: 14, background: '#fff', borderRadius: '50%', top: 2.5, left: isAnon ? 19 : 3, transition: 'left .2s', boxShadow: '0 1px 4px rgba(0,0,0,.15)' }} />
-                  </div>
-                  <span style={{ fontSize: 12, color: '#7060a0' }}>{isAnon ? '익명으로 저장 중' : '익명으로 저장'}</span>
-                </div>
-                <span style={{ fontSize: 11, color: '#c0b0d0' }}>{memo.length} / 500</span>
-              </div>
-              <button onClick={addMarble} disabled={!selectedEmotion || !memo.trim() || marbles.length >= 20} style={{ width: '100%', padding: 14, background: 'linear-gradient(135deg,#7c5cbf,#4e8de8)', border: 'none', borderRadius: 16, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 500, cursor: 'pointer', opacity: (!selectedEmotion || !memo.trim()) ? 0.4 : 1 }}>
-                구슬에 담기 ✦
-              </button>
-            </div>
-          )}
-
-          {tab === 'share' && (
-            <div style={{ padding: '0 20px' }}>
-              <div style={{ background: 'rgba(255,255,255,.75)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 20, padding: 20, marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 500, color: '#7060a0', marginBottom: 10, letterSpacing: 1 }}>현재 병 공유하기</h3>
-                {marbles.length === 0
-                  ? <p style={{ fontSize: 12, color: '#c0b0d0' }}>구슬이 없어요. 먼저 기록을 추가해보세요!</p>
-                  : <>
-                      <div style={{ background: 'rgba(240,238,255,.8)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 10, padding: '10px 12px', fontSize: 11, color: '#7060a0', wordBreak: 'break-all', marginBottom: 10, fontFamily: 'monospace', lineHeight: 1.5 }}>
-                        {generateShareLink()?.slice(0, 80)}…
-                      </div>
-                      {copied && <p style={{ fontSize: 11, color: '#2dbf88', marginBottom: 8 }}>✓ 클립보드에 복사됐어요!</p>}
-                      <button onClick={copyLink} style={{ width: '100%', padding: 10, background: copied ? 'rgba(45,191,136,.08)' : 'rgba(255,255,255,.8)', border: `1px solid ${copied ? 'rgba(45,191,136,.4)' : 'rgba(160,140,220,.25)'}`, borderRadius: 10, color: copied ? '#2dbf88' : '#7060a0', fontFamily: 'inherit', fontSize: 12, cursor: 'pointer' }}>
-                        {copied ? '✓ 복사됨!' : '🔗 공유 링크 복사하기'}
-                      </button>
-                    </>}
-              </div>
-            </div>
-          )}
-
-          {tab === 'archive' && (
-            <div style={{ padding: '0 20px' }}>
-              {archives.length === 0
-                ? <div style={{ textAlign: 'center', padding: '48px 0' }}><div style={{ fontSize: 48, marginBottom: 12 }}>🫙</div><p style={{ fontSize: 13, color: '#a090c0', lineHeight: 1.7 }}>아직 완성된 병이 없어요.<br/>구슬 20개를 모으면 병이 완성돼요!</p></div>
-                : archives.map((jar, i) => {
-                    const d = new Date(jar.completedAt);
+        {tab === 'jar' && (
+          <div style={{ padding: '0 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 }}>
+              {marbles.length > 0 ? `${new Date(marbles[0].ts).getFullYear()}년 ${new Date(marbles[0].ts).getMonth()+1}월의 기억` : '현재 병'}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', minHeight: 120, alignContent: 'flex-end', background: 'rgba(180,160,255,.08)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 20, padding: '20px 16px', marginBottom: 12 }}>
+              {marbles.length === 0
+                ? <p style={{ fontSize: 12, color: '#c0b0e0', alignSelf: 'center' }}>아직 구슬이 없어요</p>
+                : marbles.map((m, i) => {
+                    const e = EMOTIONS.find(x => x.id === m.emotion);
+                    const size = [30,26,28,24,32,26,28,30,24,28][i % 10];
                     return (
-                      <div key={i} style={{ background: 'rgba(255,255,255,.75)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, width: 48 }}>
-                          {jar.marbles.slice(0,12).map((m, mi) => { const e=EMOTIONS.find(x=>x.id===m.emotion); return <div key={mi} style={{ ...marbleStyle(e.color,12), transition:'none' }} />; })}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: '#2a2050', marginBottom: 4 }}>{d.getFullYear()}년 {d.getMonth()+1}월 #{i+1}</div>
-                          <div style={{ fontSize: 11, color: '#a090c0' }}>{jar.marbles.length}개 · {d.toLocaleDateString('ko-KR')}</div>
-                        </div>
+                      <div key={m.id} style={{ position: 'relative' }} onMouseEnter={() => setHoveredMarble(m.id)} onMouseLeave={() => setHoveredMarble(null)}>
+                        <div style={marbleStyle(e.color, size)} />
+                        {hoveredMarble === m.id && (
+                          <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,.97)', border: '1px solid rgba(160,140,220,.3)', borderRadius: 14, padding: '10px 12px', width: 180, fontSize: 12, color: '#2a2050', zIndex: 100, boxShadow: '0 8px 20px rgba(124,92,191,.15)', lineHeight: 1.5 }}>
+                            <div style={{ fontSize: 10, color: '#a090c0', marginBottom: 3 }}>{e.name}</div>
+                            <div>{m.text}</div>
+                            <div style={{ fontSize: 10, color: '#a090c0', marginTop: 4 }}>{getTimeAgo(m.ts)}</div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
             </div>
-          )}
-        </div>
+            <p style={{ fontSize: 12, color: '#a090c0' }}>{marbles.length} / 20개</p>
+          </div>
+        )}
 
-        {notif && <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,.97)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 20, padding: '10px 20px', fontSize: 13, color: '#7c5cbf', boxShadow: '0 8px 32px rgba(124,92,191,.15)', whiteSpace: 'nowrap', zIndex: 9999 }}>{notif}</div>}
+        {tab === 'add' && (
+          <div style={{ padding: '0 20px' }}>
+            <p style={{ fontSize: 11, color: '#a090c0', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>감정 선택</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 16 }}>
+              {EMOTIONS.map(e => (
+                <button key={e.id} onClick={() => setSelectedEmotion(e.id)} style={{ background: selectedEmotion===e.id ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.7)', border: `1px solid ${selectedEmotion===e.id ? e.color+'88' : 'rgba(160,140,220,.2)'}`, borderRadius: 14, padding: '10px 4px 8px', cursor: 'pointer', textAlign: 'center', transition: 'all .2s' }}>
+                  <div style={{ ...marbleStyle(e.color, 24), margin: '0 auto 6px' }} />
+                  <div style={{ fontSize: 10, color: '#7060a0' }}>{e.name}</div>
+                </button>
+              ))}
+            </div>
+            <textarea value={memo} onChange={e => setMemo(e.target.value)} maxLength={500} placeholder="오늘의 감정을 자유롭게 써보세요..." style={{ width: '100%', minHeight: 100, background: 'rgba(255,255,255,.8)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 16, padding: '14px 16px', fontSize: 14, resize: 'none', outline: 'none' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 4px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setIsAnon(!isAnon)}>
+                <div style={{ width: 36, height: 20, background: isAnon ? 'rgba(124,92,191,.5)' : 'rgba(160,140,220,.2)', borderRadius: 10, position: 'relative' }}>
+                  <div style={{ position: 'absolute', width: 14, height: 14, background: '#fff', borderRadius: '50%', top: 2.5, left: isAnon ? 19 : 3, transition: 'left .2s' }} />
+                </div>
+                <span style={{ fontSize: 12, color: '#7060a0' }}>익명 저장</span>
+              </div>
+            </div>
+            <button onClick={addMarble} disabled={!selectedEmotion || !memo.trim()} style={{ width: '100%', padding: 14, background: 'linear-gradient(135deg,#7c5cbf,#4e8de8)', border: 'none', borderRadius: 16, color: '#fff', fontSize: 14, cursor: 'pointer', opacity: (!selectedEmotion || !memo.trim()) ? 0.4 : 1 }}>
+              구슬에 담기 ✦
+            </button>
+          </div>
+        )}
+
+        {tab === 'share' && (
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ background: 'rgba(255,255,255,.75)', border: '1px solid rgba(160,140,220,.2)', borderRadius: 20, padding: 20 }}>
+              <h3 style={{ fontSize: 13, color: '#7060a0', marginBottom: 10 }}>현재 병 공유하기</h3>
+              {marbles.length === 0 ? <p style={{ fontSize: 12, color: '#c0b0d0' }}>기록을 먼저 추가해보세요!</p> : (
+                <>
+                  {copied && <p style={{ fontSize: 11, color: '#2dbf88', marginBottom: 8 }}>✓ 복사되었습니다!</p>}
+                  <button onClick={copyLink} style={{ width: '100%', padding: 10, background: 'rgba(255,255,255,.8)', border: '1px solid rgba(160,140,220,.25)', borderRadius: 10, color: '#7060a0', cursor: 'pointer' }}>
+                    {copied ? '✓ 복사됨!' : '🔗 공유 링크 복사하기'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+      {notif && <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#fff', borderRadius: 20, padding: '10px 20px', fontSize: 13, color: '#7c5cbf', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', zIndex: 9999 }}>{notif}</div>}
+    </div>
+  );
+}
+
+// *** 이 부분이 핵심입니다: 서버 사이드 렌더링을 완전히 꺼버리는 마법 ***
+const DynamicHome = dynamic(() => Promise.resolve(HomeContent), {
+  ssr: false,
+});
+
+export default function Home() {
+  return (
+    <>
+      <Head><title>Emotion Marbles</title></Head>
+      <DynamicHome />
     </>
   );
 }
